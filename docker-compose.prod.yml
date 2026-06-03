@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://user:password@db:5432/vibe_prod?schema=public
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - INNGEST_API_URL=http://inngest:8288
+      - INNGEST_EVENT_KEY=local
+      - INNGEST_SIGNING_KEY=local
+      # Note: For real production, replace these with secure values 
+      # and provide real keys for Clerk, OpenAI, E2B, etc.
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: vibe_prod
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+
+  inngest:
+    image: inngest/inngest:latest
+    command: inngest dev
+    ports:
+      - "8288:8288"
+    environment:
+      - INNGEST_APP_URL=http://app:3000/api/inngest
+    depends_on:
+      - app
+
+volumes:
+  pgdata_prod:

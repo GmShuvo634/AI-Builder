@@ -1,0 +1,41 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      # Exclude node_modules, .next, and generated prisma from volume mapping to use container's versions
+      - /app/node_modules
+      - /app/.next
+      - /app/src/generated/prisma
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/vibe_dev?schema=public
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      # Tell the Inngest SDK where the dev server is
+      - INNGEST_DEV=http://inngest:8288
+      # Add other necessary env vars from .env.local here
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: vibe_dev
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+
+  inngest:
+    image: inngest/inngest:latest
+    command: inngest dev --sdk-url http://app:3000/api/inngest --no-discovery
+    ports:
+      - "8288:8288"
+
+volumes:
+  pgdata_dev:
